@@ -89,11 +89,7 @@ def sign(input, sign_img):
     return input
 
 if __name__ == "__main__":
-    # 將所有要處理的圖片讀入
-    img = list()
-    for i in range(1, 4):
-        img.append(cv2.imread(f"im{i}.jpg"))
-    
+    img =cv2.imread("im3.jpg")
     # 定義不同的kernel
     kernel1 = np.array([
         [[1/27, 1/27, 1/27], [1/27, 1/27, 1/27], [1/27, 1/27, 1/27]],
@@ -101,45 +97,59 @@ if __name__ == "__main__":
         [[1/27, 1/27, 1/27], [1/27, 1/27, 1/27], [1/27, 1/27, 1/27]]
     ])#mean filter
     
-    kernel2 = np.array([
-        [[-1/3, -1/3, -1/3], [0, 0, 0], [1/3, 1/3, 1/3]],
-        [[-2/3, -2/3, -2/3], [0, 0, 0], [2/3, 2/3, 2/3]],
-        [[-1/3, -1/3, -1/3], [0, 0, 0], [1/3, 1/3, 1/3]]
-    ])#sobel(X方向)
+
+    kernel15 = np.array([
+        [[1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75]],
+        [[1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75]],
+        [[1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75]],
+        [[1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75]],
+        [[1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75], [1/75, 1/75, 1/75]]
+    ])#mean filter5*5
     
-    kernel3 = np.array([
-        [[1/48, 1/48, 1/48], [2/48, 2/48, 2/48], [1/48, 1/48, 1/48]],
-        [[2/48, 2/48, 2/48], [4/48, 4/48, 4/48], [2/48, 2/48, 2/48]],
-        [[1/48, 1/48, 1/48], [2/48, 2/48, 2/48], [1/48, 1/48, 1/48]]
-    ])#gaussian filter
+    kernel35 = np.array([
+        [[1/252, 1/252, 1/252], [2/252, 2/252, 2/252], [3/252, 3/252, 3/252],[2/252, 2/252, 2/252],[1/252, 1/252, 1/252]],
+        [[2/252, 2/252, 2/252], [5/252, 5/252, 5/252], [6/252, 6/252, 6/252],[5/252, 5/252, 5/252],[2/252, 2/252, 2/252]],
+        [[3/252, 3/252, 3/252], [6/252, 6/252, 6/252], [8/252, 8/252, 8/252],[6/252, 6/252, 6/252],[3/252, 3/252, 3/252]],
+        [[2/252, 2/252, 2/252], [5/252, 5/252, 5/252], [6/252, 6/252, 6/252],[5/252, 5/252, 5/252],[2/252, 2/252, 2/252]],
+        [[1/252, 1/252, 1/252], [2/252, 2/252, 2/252], [3/252, 3/252, 3/252],[2/252, 2/252, 2/252],[1/252, 1/252, 1/252]]
+    ])#gaussian filter5*5
     
     # 讀取簽名檔，並轉成黑白
     signimg = cv2.imread("sign.jpg", cv2.IMREAD_GRAYSCALE)
     
-    for i in range(1, 4):
-        # 進行mean filter並簽名，保存
-        result1 = conv(img[i-1], 3, 3, kernel1, 0, 0)
-        result1 = sign(result1, signimg)
-        cv2.imwrite(f"im{i}blur.jpg", result1)
+    # 進行mean filter onepadding並簽名，保存
+    result = conv(img, 3, 3, kernel1, 0, 1)
+    result = sign(result, signimg)
+    cv2.imwrite(f"im3_onepadding.jpg", result)
         
-        # 進行sobel並簽名，保存
-        result2 = conv(img[i-1], 3, 3, kernel2, 0, 0)
-        result2 = sign(result2, signimg)
-        cv2.imwrite(f"im{i}sobel.jpg", result2)
-        
-        # 進行gaussian filter並簽名，保存
-        result3 = conv(img[i-1],3,3,kernel3,0,0)
-        result3 = sign(result3,signimg)
-        cv2.imwrite(f"im{i}gauss.jpg",result3)
+    # 進行mean filter nopadding並簽名，保存
+    result = conv(img,3,3,kernel1,0,-1)
+    result = sign(result,signimg)
+    cv2.imwrite(f"im3_nopadding.jpg",result)
 
-        # 進行max pool並簽名，保存
-        resultmax = pool(img[i-1],2,2,1)
-        resultmax = sign(resultmax,signimg)
-        cv2.imwrite(f"im{i}maxpool.jpg",resultmax)
+    # 進行mean filter bias100並簽名，保存
+    result = conv(img,3,3,kernel1,100,0)
+    result = sign(result,signimg)
+    cv2.imwrite(f"im3_bias100.jpg",result)
 
-        # 進行average pool並簽名，保存
-        resultaverage = pool(img[i-1],2,2,0)
-        resultaverage = sign(resultaverage,signimg)
-        cv2.imwrite(f"im{i}avgpool.jpg",resultaverage) 
+    # 進行mean filter 5*5並簽名，保存
+    result = conv(img,5,5,kernel15,0,0)
+    result = sign(result,signimg)
+    cv2.imwrite(f"im3_blur5.jpg",result)
+
+    # 進行gaussian filter5*5並簽名，保存
+    result = conv(img,5,5,kernel35,0,0)
+    result = sign(result,signimg)
+    cv2.imwrite(f"im3_gauss5.jpg",result)
+
+    # 進行max pool並簽名，保存
+    resultmax = pool(img,4,4,1)
+    resultmax = sign(resultmax,signimg)
+    cv2.imwrite(f"im3maxpool4.jpg",resultmax)
+
+    # 進行average pool並簽名，保存
+    resultaverage = pool(img,4,4,0)
+    resultaverage = sign(resultaverage,signimg)
+    cv2.imwrite(f"im3avgpool4.jpg",resultaverage) 
         
     print("Processing complete.")
