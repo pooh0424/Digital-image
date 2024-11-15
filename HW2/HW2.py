@@ -28,7 +28,7 @@ def Equalization(img,histfrequency):#直方圖均衡
         cor[i] = round(sum/(w*h)*255,0) #計算對應的值
     for i in range(w):
         for r in range(h):
-            img[i,r] = cor[img[r,i]] #將對應的值填入圖片
+            img[r,i] = cor[img[r,i]] #將對應的值填入圖片
     return img
 
 def graypicture(img,name):#灰階圖片處理
