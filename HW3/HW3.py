@@ -150,6 +150,8 @@ def double_threshold(img, low, high):
     return result
 
 def edge_linking_dfs(img):
+    processimg = img.copy() #複製圖片
+
     # 初始化邊緣圖
     edge = np.zeros(img.shape, dtype="uint8")
     
@@ -168,15 +170,15 @@ def edge_linking_dfs(img):
                 edge[cx, cy] = 255  # 標記為邊緣
                 for dx, dy in directions:
                     nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < img.shape[0] and 0 <= ny < img.shape[1]:
-                        if img[nx, ny] == 128 and edge[nx, ny] == 0:  # 與弱邊緣相連
-                            img[nx, ny] = 255  # 標記為強邊緣
+                    if 0 <= nx < processimg.shape[0] and 0 <= ny < processimg.shape[1]:
+                        if processimg[nx, ny] == 128 and edge[nx, ny] == 0:  # 與弱邊緣相連
+                            processimg[nx, ny] = 255  # 標記為強邊緣
                             stack.append((nx, ny))
     
     # 遍歷整個圖像，從強邊緣開始進行 DFS
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
-            if img[i, j] == 255 and edge[i, j] == 0:  # 強邊緣且未處理
+            if processimg[i, j] == 255 and edge[i, j] == 0:  # 強邊緣且未處理
                 dfs(i, j)
     
     return edge
@@ -191,11 +193,10 @@ def hough_transform(edge_image, theta_res=np.pi/180, rho_res=1, threshold=50, sa
     
     # 2. 隨機選擇邊緣點 (根據 sample_rate 控制樣本數量)
     edge_points = np.argwhere(edge_image)  # 取得所有邊緣點 (y, x)
-    print(len(edge_points))
     sampled_points_idx = np.random.choice(edge_points.shape[0],size = int(len(edge_points)*sample_rate),replace= False)  # 隨機選擇部分邊緣點
     sampled_points = edge_points[sampled_points_idx] 
     # 3. 初始化累加器 (Accumulator)
-    print(len(sampled_points))
+    print("samplepoint:"+str(len(sampled_points)))
     accumulator = np.zeros((len(rhos), len(thetas)), dtype=np.int32)
     
     # 4. 投票：對每個邊緣點，計算 θ 和 ρ，並擴展範圍進行投票
@@ -219,35 +220,8 @@ def hough_transform(edge_image, theta_res=np.pi/180, rho_res=1, threshold=50, sa
     
     return lines
 
-if __name__ == "__main__":
-
-    img = cv2.imread("im3.jpg")
-    img = cv2.resize(img, (int(img.shape[1]/4), int(img.shape[0]/4)))
-    img2 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img2 = gussenfilter(img2, 5)
-    grad, angle = compute_gradient(img2, 3)
-    grad2 = non_max(grad, angle)
-    grad3 = double_threshold(grad2,50 , 150)
-    cv2.imwrite("result.jpg", grad3)
-    # start_time = time.time()
-    # grad31 = edge_linking(grad3)
-    # end_time = time.time()
-    # print(f"edge_linking execution time: {end_time - start_time} seconds")
-
-    # start_time = time.time()
-    grad32 = edge_linking_dfs(grad3)
-    
-    # end_time = time.time()
-    # print(f"edge_linking_dfs execution time: {end_time - start_time} seconds")
-    cv2.imwrite("result2.jpg", grad32)
-
-    # lines2 = cv2.HoughLines(grad32, 1, np.pi/180, 100)
-    lines= hough_transform(grad32,  threshold=70,sample_rate=0.5, delta_theta=0, delta_rho=0)
-    
-    # lines= hough_transform2(grad3)
-    # # print(len(lines2))
-    # print(len(lines))
-    print(len(lines))
+def drowline(img, lines):
+    print("linenumber:"+str(len(lines)))
     if lines is not None:
         for line in lines:
             rho, theta = line  # 提取 rho 和 theta
@@ -263,20 +237,49 @@ if __name__ == "__main__":
             # 在圖像上繪製直線
             cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 1)
 
-    # if lines2 is not None:
-    #     print(len(lines2))
-    #     for line in lines2:
-    #         rho, theta = line[0]  # 提取 rho 和 theta
-    #         a = np.cos(theta)
-    #         b = np.sin(theta)
-    #         x0 = a * rho
-    #         y0 = b * rho
-    #         # 計算兩個端點
-    #         x1 = int(x0 + 2000 * (-b))
-    #         y1 = int(y0 + 2000 * (a))
-    #         x2 = int(x0 - 2000 * (-b))
-    #         y2 = int(y0 - 2000 * (a))
-    #         # 在圖像上繪製直線
-    #         cv2.line(img, (x1, y1), (x2, y2), (0 ,0 ,0), 1)
-    cv2.imwrite("Detected Lines.jpg",img)
+
+def canny_edge(img, gussenfiltersize, compute_gradientsize,low, high):
+    processimg = img.copy() #複製圖片
+    imgresize = gussenfilter(processimg, gussenfiltersize)#高斯濾波
+    grad, angle = compute_gradient(imgresize, compute_gradientsize)#計算梯度
+    grad = non_max(grad, angle)
+    grad = double_threshold(grad ,low , high)
+    gradresult = edge_linking_dfs(grad)
+    return gradresult, grad
+
+def sign(input, sign_img):
+    (h, w) = input.shape  # 取得圖片height 、width(黑白)
+    #簽名在圖片的右下角位置
+    for i in range(100):
+        for j in range(200):
+            if sign_img[i][j] < 50:  # 如果該位置小於50(黑色)，則將該位置像素調整為全白
+                input[h - 100 + i][w - 200 + j] = 255
+    return input
+
+def signcolor(input, sign_img):
+    (h, w , r) = input.shape  # 取得圖片height 、width(黑白)
+    #簽名在圖片的右下角位置
+    for i in range(100):
+        for j in range(200):
+            if sign_img[i][j] < 50:  # 如果該位置小於50(黑色)，則將該位置像素調整為全白
+                for k in range(r):
+                    input[h - 100 + i][w - 200 + j][k] = 0
+    return input
+if __name__ == "__main__":
+    parameter=[[50, 150, 80],[50, 150, 50],[60, 120, 60]]#參數(low,higt,threshold)
+    signimg = cv2.imread("sign.jpg", cv2.IMREAD_GRAYSCALE)
+    for i in range(0, 3):
+        img = cv2.imread(f"im{i+1}.jpg") #讀取圖片
+        imgresize = cv2.resize(img, (int(img.shape[1]/4), int(img.shape[0]/4)))#縮小圖片
+        imgresizegray = cv2.cvtColor(imgresize, cv2.COLOR_BGR2GRAY)#轉換成灰階圖片
+        gradresult,grad = canny_edge(imgresizegray , 5, 3, parameter[i][0], parameter[i][1]) 
+        grad = sign(grad, signimg)
+        gradresult = sign(gradresult, signimg)
+        cv2.imwrite(f"double_im{i+1}.jpg", grad)
+        cv2.imwrite(f"cannyedge_im{i+1}.jpg", gradresult)
+        
+        lines= hough_transform(gradresult,  threshold=parameter[i][2],sample_rate=0.5, delta_theta=0, delta_rho=0)
+        drowline(imgresize, lines)
+        imgresize = signcolor(imgresize, signimg)
+        cv2.imwrite(f"Detected_Lines_im{i+1}.jpg",imgresize)
     
