@@ -103,25 +103,25 @@ def gussenfilter(img, size):
     return img
 
 def compute_gradient(img, size=3):
-    x= cv2.Sobel(img, cv2.CV_64F ,1, 0, ksize=size)
-    y= cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=size)
-    grad = np.sqrt(x**2 +y **2)
-    angle = np.arctan(y, x)
+    x= cv2.Sobel(img,cv2.CV_64F, 1, 0, ksize=size)
+    y= cv2.Sobel(img,cv2.CV_64F, 0, 1, ksize=size)
+    grad = np.sqrt(np.power(x,2) + np.power(y,2))
+    angle = np.arctan2(y, x)
     return grad, angle
 
 def non_max(grad, angle):
     result = np.zeros(grad.shape,dtype="int32")
     for i in range(1, grad.shape[0]-1):
         for j in range(1, grad.shape[1]-1):
-            if angle[i, j] < 0:
-                angle[i, j] += np.pi
+            if(angle[ i ,j]< 0):
+                angle[i ,j] += np.pi
             if (angle[i, j] >= 7/8*np.pi or angle[i, j] < 1/8*np.pi):
                 if grad[i, j] > grad[i, j+1] and grad[i, j] > grad[i, j-1]:
                     result[i, j] = grad[i, j]
                 else:
                     result[i, j] = 0
             elif (angle[i, j] >= 1/8*np.pi and angle[i, j] < 3/8*np.pi):
-                if grad[i, j] > grad[i-1, j+1] and grad[i, j] > grad[i+1, j-1]:
+                if grad[i, j] > grad[i-1, j-1] and grad[i, j] > grad[i+1, j+1]:
                     result[i, j] = grad[i, j]
                 else:
                     result[i, j] = 0
@@ -131,7 +131,7 @@ def non_max(grad, angle):
                 else:
                     result[i, j] = 0
             else:
-                if grad[i, j] > grad[i-1, j-1] and grad[i, j] > grad[i+1, j+1]:
+                if grad[i, j] > grad[i-1, j+1] and grad[i, j] > grad[i+1, j-1]:
                     result[i, j] = grad[i, j]
                 else:
                     result[i, j] = 0
@@ -266,7 +266,7 @@ def signcolor(input, sign_img):
                     input[h - 100 + i][w - 200 + j][k] = 0
     return input
 if __name__ == "__main__":
-    parameter=[[50, 150, 80],[50, 150, 50],[60, 120, 60]]#參數(low,higt,threshold)
+    parameter=[[50, 150, 70],[50, 150, 80],[50, 150, 85]]#參數(low,higt,threshold)
     signimg = cv2.imread("sign.jpg", cv2.IMREAD_GRAYSCALE)
     for i in range(0, 3):
         img = cv2.imread(f"im{i+1}.jpg") #讀取圖片
